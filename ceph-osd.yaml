@@ -1,0 +1,115 @@
+heat_template_version: 2015-04-30
+
+description: Template to create an OSD for Ceph cluster
+
+parameters:
+  admin_node_ip:
+    type: string
+    description: admin node ip
+  name:
+    type: string
+    description: Name of server
+  image:
+    type: string
+    description: Name of image to use for the worker
+    constraints:
+      - custom_constraint: glance.image
+  client_net:
+    type: string
+    description: >
+      Name or ID of client network for which the OSD will be attached
+    constraints:
+      - custom_constraint: neutron.network
+  osd_net:
+    type: string
+    description: >
+      Name or ID of private network for which the OSD will be attached
+    constraints:
+      - custom_constraint: neutron.network
+  osd_subnet:
+    type: string
+    description: >
+      Name or ID of private sub network for which the OSD will be attached
+    constraints:
+      - custom_constraint: neutron.subnet
+  secgroup_base:
+    type: string
+    description: >
+      Name or ID of the base secgroup
+  secgroup_worker:
+    type: string
+    description: >
+      Name or ID of the worker secgroup
+  flavor:
+    type: string
+    description: Worker Flavor
+    default: m1.large
+    constraints:
+      - custom_constraint: nova.flavor
+  keypair:
+    type: string
+    description: OSD Keypair
+  root_password:
+    type: string
+    description: Root Password for the worker
+    default: linux
+  num_volumes:
+    type: number
+    description: Number of volumes to create and attach to the worker
+    default: 0
+  volume_size:
+    type: number
+    description: Size of each volume in GB.
+    default: 10
+
+resources:
+
+  osd_port:
+    type: "OS::Neutron::Port"
+    properties:
+      network: { get_param: osd_net  }
+      fixed_ips:
+        - subnet: { get_param: osd_subnet }
+
+  osd:
+    type: OS::Nova::Server
+    depends_on:
+      - osd_port
+    properties:
+      name: { get_param: name }
+      image: { get_param: image }
+      key_name: { get_param: keypair }
+      flavor: { get_param: flavor }
+      networks:
+        - network: { get_param: client_net }
+        - port: { get_resource: osd_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            disable_root: False
+            ssh_deletekeys: False
+            ssh_pwauth: True
+            chpasswd:
+              list: |
+                root:$root_password
+              expire: False
+            suse_caasp:
+              role: cluster
+              admin_node: $admin_node
+            runcmd:
+              - /usr/bin/systemctl start crio
+          params:
+            $admin_node: { get_param: admin_node_ip }
+            $root_password: { get_param: root_password }
+
+  osd_volumes:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: num_volumes }
+      resource_def:
+        type: volume-with-attachment.yaml
+        properties:
+          instance_id: { get_resource: osd }
+          volume_size: { get_param: volume_size }

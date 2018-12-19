@@ -1,0 +1,30 @@
+parameters:
+  root_password: linux
+
+  # admin_flavor: m1.large
+  # admin_image: openSUSE-Tumbleweed-Kubic-kubeadm-cri-o
+
+  master_flavor: m1.large
+  master_image: openSUSE-Tumbleweed-Kubic-kubeadm-cri-o
+
+  worker_flavor: m1.large
+  worker_image: openSUSE-Tumbleweed-Kubic-MicroOS-cri-o
+  worker_count: 2
+
+  # Ceph OSD nodes
+  osd_image: openSUSE-Tumbleweed-Kubic-MicroOS-cri-o
+  osd_flavor: m1.large
+  osd_count: 5
+  # number of volumes and their sizes per OSD node
+  num_volumes: 5
+  volume_size: 10
+
+  external_net: floating
+  # Make sure you use a CIDR that doesn't conflict with the CaaSP IPs:
+  # https://github.com/kubic-project/salt/blob/master/pillar/params.sls#L51
+  # https://github.com/kubic-project/velum/blob/master/app/controllers/setup_controller.rb#L34
+  # If dns_nameserver is the same as CaaSPs dns_cluster_ip then the kube service
+  # hostnames won't be resolved.
+  internal_net_cidr: 172.28.0.0/24
+  dns_nameserver: 172.28.0.2
+  osd_net_cidr: 192.168.1.0/24

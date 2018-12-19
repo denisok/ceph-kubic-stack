@@ -1,0 +1,374 @@
+heat_template_version: 2015-04-30
+
+description: Template to create a CaaSP cluster on OpenStack
+
+parameter_groups:
+  - label: general
+    description: General Parameters
+    parameters:
+      - master_image
+      - worker_image
+      - osd_image
+      - root_password
+      - keypair
+
+  - label: sizing
+    description: Sizing Parameters
+    parameters:
+      - master_flavor
+      - worker_flavor
+      - osd_flavor      
+      - worker_count
+      - osd_count
+
+  - label: network
+    description: Network Parameters
+    parameters:
+      - external_net
+      - internal_net_cidr
+      - osd_net_cidr
+      - dns_nameserver
+
+parameters:
+  keypair:
+    type: string
+    description: Exiting key-pair
+  master_image:
+    type: string
+    description: Name of image to use for master server
+    constraints:
+      - custom_constraint: glance.image
+  worker_image:
+    type: string
+    description: Name of image to use for workers servers
+    constraints:
+      - custom_constraint: glance.image
+  osd_image:
+    type: string
+    description: Name of image to use for workers servers
+    constraints:
+      - custom_constraint: glance.image
+  external_net:
+    type: string
+    description: >
+      Name or ID of public network for which floating IP addresses will be allocated
+    default: floating
+  internal_net_cidr:
+    type: string
+    description: Private network range which servers get deployed. Make sure this doesn't conflict with the any IP addresses CaaSP uses (e.g. the dns_cluster_ip).
+    default: 172.28.0.0/24
+  osd_net_cidr:
+    type: string
+    description: Private Ceph cluster network range which servers get deployed.
+    default: 192.168.0.0/24
+  dns_nameserver:
+    type: string
+    description: Address of a dns nameserver reachable.
+    default: 172.28.0.2
+  master_flavor:
+    type: string
+    description: Master Flavor
+    default: m1.large
+    constraints:
+      - custom_constraint: nova.flavor
+  worker_flavor:
+    type: string
+    description: Worker Flavor
+    default: m1.large
+    constraints:
+      - custom_constraint: nova.flavor
+  osd_flavor:
+    type: string
+    description: OSD Flavor
+    default: m1.large
+    constraints:
+      - custom_constraint: nova.flavor
+  worker_count:
+    type: number
+    description: Number of Worker nodes to boot
+    default: 5
+  osd_count:
+    type: number
+    description: Number of OSD nodes to boot
+    default: 5
+  num_volumes:
+    type: number
+    description: Number of volumes per OSD node
+    default: 5
+  volume_size:
+    type: number
+    description: Size of volume in GB to attach to OSD node
+    default: 10
+  root_password:
+    type: string
+    description: Root Password for the VMs
+    default: linux
+
+resources:
+  internal_network:
+    type: OS::Neutron::Net
+    properties:
+      name:
+        str_replace:
+          template: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'kubic-int-net']]}
+          params:
+            ".": "-"
+
+  internal_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      cidr: {get_param: internal_net_cidr}
+      network: {get_resource: internal_network}
+      dns_nameservers:
+        - {get_param: dns_nameserver}
+      name:
+        str_replace:
+          template: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'kubic-int-subnet']]}
+          params:
+            ".": "-"
+
+  external_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: {get_param: external_net}
+
+  external_router_int:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: {get_resource: external_router}
+      subnet: {get_resource: internal_subnet}
+
+  secgroup_base:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules:
+        - protocol: icmp
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+        - protocol: tcp
+          port_range_min: 2379
+          port_range_max: 2379
+        - protocol: udp
+          port_range_min: 8472
+          port_range_max: 8472
+
+  secgroup_master:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules:
+        - protocol: tcp
+          port_range_min: 2380
+          port_range_max: 2380
+        - protocol: tcp
+          port_range_min: 6443
+          port_range_max: 6444
+        - protocol: udp
+          port_range_min: 8285
+          port_range_max: 8285
+        - protocol: tcp
+          port_range_min: 30000
+          port_range_max: 32768
+        - protocol: udp
+          port_range_min: 30000
+          port_range_max: 32768
+
+  secgroup_worker:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules:
+        - protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+        - protocol: tcp
+          port_range_min: 443
+          port_range_max: 443
+        - protocol: tcp
+          port_range_min: 8080
+          port_range_max: 8080
+        - protocol: tcp
+          port_range_min: 8081
+          port_range_max: 8081
+        - protocol: tcp
+          port_range_min: 2380
+          port_range_max: 2380
+        - protocol: tcp
+          port_range_min: 10250
+          port_range_max: 10250
+        - protocol: udp
+          port_range_min: 8285
+          port_range_max: 8285
+        - protocol: tcp
+          port_range_min: 30000
+          port_range_max: 32768
+        - protocol: udp
+          port_range_min: 30000
+          port_range_max: 32768
+
+  master:
+    type: OS::Nova::Server
+    depends_on:
+      - external_router_int
+    properties:
+      name: { list_join: ['-', [{get_param: 'OS::stack_name'}, 'master']] }
+      image: { get_param: master_image }
+      key_name: { get_param: keypair }
+      flavor: { get_param: master_flavor }
+      networks:
+        - port: { get_resource: master_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+
+            disable_root: False
+            ssh_deletekeys: False
+            ssh_pwauth: True
+
+            chpasswd:
+              list: |
+                root:$root_password
+              expire: False
+
+            suse_caasp:
+              role: admin
+
+            ntp:
+              enabled: true
+              #servers:
+              #  - ntp1.example.com
+              #  - ntp2.example.com
+              #  - ntp3.example.com
+            runcmd:
+              - /usr/bin/systemctl enable ntpd
+              - /usr/bin/systemctl start ntpd
+              - /usr/bin/systemctl start crio
+          params:
+            $root_password: { get_param: root_password }
+
+  master_port:
+    type: OS::Neutron::Port
+    depends_on:
+      - external_router_int
+    properties:
+      network: { get_resource: internal_network }
+      security_groups:
+        - { get_resource: secgroup_base }
+        - { get_resource: secgroup_master }
+
+  master_floating_ip:
+    type: OS::Neutron::FloatingIP
+    depends_on:
+      - external_router_int
+    properties:
+      floating_network: { get_param: external_net }
+
+  master_floating_ip_association:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: master_floating_ip }
+      port_id: { get_resource: master_port }
+
+  worker:
+    type: OS::Heat::ResourceGroup
+    depends_on:
+      - external_router_int
+    properties:
+      count: { get_param: worker_count }
+      resource_def:
+        type: OS::Nova::Server
+        properties:
+          name: { list_join: ['-', [{get_param: 'OS::stack_name'}, 'worker', '%index%']] }
+          image: { get_param: worker_image }
+          key_name: { get_param: keypair }
+          flavor: { get_param: worker_flavor }
+          networks:
+            - network: { get_resource: internal_network }
+          security_groups:
+            - { get_resource: secgroup_base }
+            - { get_resource: secgroup_worker }
+          user_data_format: RAW
+          user_data:
+            str_replace:
+              template: |
+                #cloud-config
+
+                disable_root: False
+                ssh_deletekeys: False
+                ssh_pwauth: True
+
+                chpasswd:
+                  list: |
+                    root:$root_password
+                  expire: False
+
+                suse_caasp:
+                  role: cluster
+                  admin_node: $admin_node
+
+                ntp:
+                  enabled: true
+                  #servers:
+                  #  - ntp1.example.com
+                  #  - ntp2.example.com
+                  #  - ntp3.example.com
+                runcmd:
+                  - /usr/bin/systemctl enable ntpd
+                  - /usr/bin/systemctl start ntpd
+                  - /usr/bin/systemctl start crio
+              params:
+                $admin_node: { get_attr: [master, first_address] }
+                $root_password: { get_param: root_password }
+
+  osd_network:
+    type: OS::Neutron::Net
+    properties:
+      name:
+        str_replace:
+          template: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'osd-int-net']]}
+          params:
+            ".": "-"
+
+  osd_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name:
+        str_replace:
+          template: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'osd-int-sub-net']]}
+          params:
+            ".": "-"
+      cidr: {get_param: osd_net_cidr}
+      network: {get_resource: osd_network}
+
+  osd:
+    type: OS::Heat::ResourceGroup
+    depends_on:
+      - osd_network
+      - osd_subnet
+      - external_router_int
+    properties:
+      count: { get_param: osd_count }
+      resource_def:
+        type: ceph-osd.yaml
+        properties:
+          admin_node_ip: { get_attr: [master, first_address] }
+          name: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'osd', '%index%']]}
+          image: { get_param: osd_image }
+          client_net: { get_resource: internal_network  }
+          osd_net: { get_resource: osd_network }
+          osd_subnet: { get_resource: osd_subnet }
+          secgroup_base: { get_resource: secgroup_base }
+          secgroup_worker: { get_resource: secgroup_worker }
+          flavor: { get_param: osd_flavor }
+          keypair: { get_param: keypair }
+          root_password: { get_param: root_password }
+          num_volumes: { get_param: num_volumes }
+          volume_size: { get_param: volume_size }
+
+outputs:
+  # master
+  master-floating-network-ip:
+    description: Floating IP address of the master node
+    value: { get_attr: [master_floating_ip, floating_ip_address] }
