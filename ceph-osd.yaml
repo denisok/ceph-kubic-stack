@@ -71,6 +71,14 @@ resources:
       fixed_ips:
         - subnet: { get_param: osd_subnet }
 
+  client_port:
+    type: "OS::Neutron::Port"
+    properties:
+      network: { get_param: client_net  }
+      security_groups:
+          - { get_param: secgroup_base }
+          - { get_param: secgroup_worker }
+
   osd:
     type: OS::Nova::Server
     depends_on:
@@ -81,7 +89,7 @@ resources:
       key_name: { get_param: keypair }
       flavor: { get_param: flavor }
       networks:
-        - network: { get_param: client_net }
+        - port: { get_resource: client_port }
         - port: { get_resource: osd_port }
       user_data_format: RAW
       user_data:
