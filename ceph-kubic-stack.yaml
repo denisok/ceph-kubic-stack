@@ -354,7 +354,7 @@ resources:
         type: ceph-osd.yaml
         properties:
           admin_node_ip: { get_attr: [master, first_address] }
-          name: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'osd', '%index%']]}
+          name: { get_param: 'OS::stack_name' }
           image: { get_param: osd_image }
           client_net: { get_resource: internal_network  }
           osd_net: { get_resource: osd_network }

@@ -84,7 +84,7 @@ resources:
     depends_on:
       - osd_port
     properties:
-      name: { get_param: name }
+      name: { list_join: ['-', [{ get_param: name }, 'osd', '%index%']] }
       image: { get_param: image }
       key_name: { get_param: keypair }
       flavor: { get_param: flavor }
