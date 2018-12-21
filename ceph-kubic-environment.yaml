@@ -1,22 +1,19 @@
 parameters:
   root_password: linux
 
-  # admin_flavor: m1.large
-  # admin_image: openSUSE-Tumbleweed-Kubic-kubeadm-cri-o
-
   master_flavor: m1.large
   master_image: openSUSE-Tumbleweed-Kubic-kubeadm-cri-o
 
   worker_flavor: m1.large
   worker_image: openSUSE-Tumbleweed-Kubic-MicroOS-cri-o
-  worker_count: 2
+  worker_count: 3
 
   # Ceph OSD nodes
   osd_image: openSUSE-Tumbleweed-Kubic-MicroOS-cri-o
   osd_flavor: m1.large
   osd_count: 5
   # number of volumes and their sizes per OSD node
-  num_volumes: 5
+  num_volumes: 3
   volume_size: 10
 
   external_net: floating
