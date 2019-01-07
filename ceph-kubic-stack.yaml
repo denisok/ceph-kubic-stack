@@ -350,11 +350,13 @@ resources:
       - external_router_int
     properties:
       count: { get_param: osd_count }
+      index_var: index
       resource_def:
         type: ceph-osd.yaml
         properties:
           admin_node_ip: { get_attr: [master, first_address] }
           name: { get_param: 'OS::stack_name' }
+          index: index
           image: { get_param: osd_image }
           client_net: { get_resource: internal_network  }
           osd_net: { get_resource: osd_network }

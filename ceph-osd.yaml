@@ -9,6 +9,10 @@ parameters:
   name:
     type: string
     description: Name of server
+  index:
+    type: number
+    label: OSD Index
+    description: number of OSD to spin up
   image:
     type: string
     description: Name of image to use for the worker
@@ -84,7 +88,13 @@ resources:
     depends_on:
       - osd_port
     properties:
-      name: { list_join: ['-', [{ get_param: name }, 'osd', '%index%']] }
+      name:
+        str_replace:
+          template: $stack_name-$node-$index
+          params:
+            $node: "osd"
+            $stack_name: { get_param: name }
+            $index: {get_param: index}
       image: { get_param: image }
       key_name: { get_param: keypair }
       flavor: { get_param: flavor }
