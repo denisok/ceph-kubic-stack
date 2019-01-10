@@ -148,8 +148,30 @@ resources:
           port_range_min: 22
           port_range_max: 22
         - protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+        - protocol: tcp
+          port_range_min: 443
+          port_range_max: 443
+        - protocol: tcp
+          #NFS
+          port_range_min: 875
+          port_range_max: 875
+        - protocol: tcp
+          #NFS
+          port_range_min: 2049
+          port_range_max: 2049
+        - protocol: tcp
           port_range_min: 2379
           port_range_max: 2379
+        - protocol: tcp
+          # ISCSI gw
+          port_range_min: 3260
+          port_range_max: 3260
+        - protocol: tcp
+          # Ceph MON
+          port_range_min: 6789
+          port_range_max: 6789
         - protocol: udp
           port_range_min: 8472
           port_range_max: 8472
@@ -179,11 +201,9 @@ resources:
     properties:
       rules:
         - protocol: tcp
-          port_range_min: 80
-          port_range_max: 80
-        - protocol: tcp
-          port_range_min: 443
-          port_range_max: 443
+          #Grafana
+          port_range_min: 3000
+          port_range_max: 3000
         - protocol: tcp
           port_range_min: 8080
           port_range_max: 8080
@@ -193,6 +213,22 @@ resources:
         - protocol: tcp
           port_range_min: 2380
           port_range_max: 2380
+        - protocol: tcp
+          # Ceph OSD/MDS
+          port_range_min: 6800
+          port_range_max: 7300
+        - protocol: tcp
+          # Prometheus
+          port_range_min: 9090
+          port_range_max: 9090
+        - protocol: tcp
+          # Prometheus
+          port_range_min: 9100
+          port_range_max: 9100
+        - protocol: tcp
+          # Prometheus
+          port_range_min: 9128
+          port_range_max: 9128
         - protocol: tcp
           port_range_min: 10250
           port_range_max: 10250
