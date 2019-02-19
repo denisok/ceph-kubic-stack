@@ -5,11 +5,11 @@ parameters:
   master_image: openSUSE-Tumbleweed-Kubic-kubeadm-cri-o
 
   worker_flavor: m1.large
-  worker_image: openSUSE-Tumbleweed-Kubic-MicroOS-cri-o
+  worker_image: openSUSE-Tumbleweed-Kubic-kubeadm-cri-o
   worker_count: 3
 
   # Ceph OSD nodes
-  osd_image: openSUSE-Tumbleweed-Kubic-MicroOS-cri-o
+  osd_image: openSUSE-Tumbleweed-Kubic-kubeadm-cri-o
   osd_flavor: m1.large
   osd_count: 5
   # number of volumes and their sizes per OSD node
