@@ -175,20 +175,42 @@ resources:
         - protocol: udp
           port_range_min: 8472
           port_range_max: 8472
+        - protocol: tcp
+          # CRI-o stream port
+          port_range_min: 10010
+          port_range_max: 10010
 
   secgroup_master:
     type: OS::Neutron::SecurityGroup
     properties:
       rules:
+        # etcd
         - protocol: tcp
-          port_range_min: 2380
+          port_range_min: 2379
           port_range_max: 2380
+        # k8s api
         - protocol: tcp
           port_range_min: 6443
           port_range_max: 6444
         - protocol: udp
           port_range_min: 8285
           port_range_max: 8285
+        # VXLAN
+        - protocol: udp
+          port_range_min: 8471
+          port_range_max: 8472
+        # kubelet
+        - protocol: tcp
+          port_range_min: 10250
+          port_range_max: 10250
+        # kube-proxy
+        - protocol: tcp
+          port_range_min: 10256
+          port_range_max: 10256
+        # kubelet
+        - protocol: tcp
+          port_range_min: 20255
+          port_range_max: 20255
         - protocol: tcp
           port_range_min: 30000
           port_range_max: 32768
@@ -200,6 +222,10 @@ resources:
     type: OS::Neutron::SecurityGroup
     properties:
       rules:
+        # etcd
+        - protocol: tcp
+          port_range_min: 2379
+          port_range_max: 2380
         - protocol: tcp
           #Grafana
           port_range_min: 3000
@@ -213,10 +239,18 @@ resources:
         - protocol: tcp
           port_range_min: 2380
           port_range_max: 2380
+        # kubelet
+        - protocol: tcp
+          port_range_min: 4149
+          port_range_max: 4149
         - protocol: tcp
           # Ceph OSD/MDS
           port_range_min: 6800
           port_range_max: 7300
+        # VXLAN
+        - protocol: udp
+          port_range_min: 8471
+          port_range_max: 8472
         - protocol: tcp
           # Prometheus
           port_range_min: 9090
@@ -229,9 +263,14 @@ resources:
           # Prometheus
           port_range_min: 9128
           port_range_max: 9128
+        # kubelet
         - protocol: tcp
           port_range_min: 10250
           port_range_max: 10250
+        # kube-proxy
+        - protocol: tcp
+          port_range_min: 10256
+          port_range_max: 10256
         - protocol: udp
           port_range_min: 8285
           port_range_max: 8285
