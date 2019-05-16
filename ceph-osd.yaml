@@ -24,12 +24,6 @@ parameters:
       Name or ID of client network for which the OSD will be attached
     constraints:
       - custom_constraint: neutron.network
-  client_subnet:
-    type: string
-    description: >
-      Name or ID of client sub network for which the OSD will be attached
-    constraints:
-      - custom_constraint: neutron.subnet
   osd_net:
     type: string
     description: >
@@ -85,7 +79,6 @@ resources:
     type: "OS::Neutron::Port"
     properties:
       network: { get_param: client_net  }
-      subnets: { get_param: client_subnet }
       security_groups:
           - { get_param: secgroup_base }
           - { get_param: secgroup_worker }

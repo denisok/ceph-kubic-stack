@@ -434,7 +434,6 @@ resources:
           index: index
           image: { get_param: osd_image }
           client_net: { get_resource: internal_network  }
-          client_subnet: { get_resource: internal_subnet }
           osd_net: { get_resource: osd_network }
           osd_subnet: { get_resource: osd_subnet }
           secgroup_base: { get_resource: secgroup_base }
