@@ -397,31 +397,31 @@ resources:
                 $admin_node: { get_attr: [master, first_address] }
                 $root_password: { get_param: root_password }
 
-  osd_network:
-    type: OS::Neutron::Net
-    properties:
-      name:
-        str_replace:
-          template: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'osd-int-net']]}
-          params:
-            ".": "-"
+  # osd_network:
+  #   type: OS::Neutron::Net
+  #   properties:
+  #     name:
+  #       str_replace:
+  #         template: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'osd-int-net']]}
+  #         params:
+  #           ".": "-"
 
-  osd_subnet:
-    type: OS::Neutron::Subnet
-    properties:
-      name:
-        str_replace:
-          template: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'osd-int-sub-net']]}
-          params:
-            ".": "-"
-      cidr: {get_param: osd_net_cidr}
-      network: {get_resource: osd_network}
+  # osd_subnet:
+  #   type: OS::Neutron::Subnet
+  #   properties:
+  #     name:
+  #       str_replace:
+  #         template: {list_join: ['-', [{get_param: 'OS::stack_name'}, 'osd-int-sub-net']]}
+  #         params:
+  #           ".": "-"
+  #     cidr: {get_param: osd_net_cidr}
+  #     network: {get_resource: osd_network}
 
   osd:
     type: OS::Heat::ResourceGroup
     depends_on:
-      - osd_network
-      - osd_subnet
+      # - osd_network
+      # - osd_subnet
       - external_router_int
     properties:
       count: { get_param: osd_count }
@@ -434,8 +434,9 @@ resources:
           index: index
           image: { get_param: osd_image }
           client_net: { get_resource: internal_network  }
-          osd_net: { get_resource: osd_network }
-          osd_subnet: { get_resource: osd_subnet }
+          client_subnet: { get_resource: internal_subnet }
+          # osd_net: { get_resource: osd_network }
+          # osd_subnet: { get_resource: osd_subnet }
           secgroup_base: { get_resource: secgroup_base }
           secgroup_worker: { get_resource: secgroup_worker }
           flavor: { get_param: osd_flavor }

@@ -24,18 +24,24 @@ parameters:
       Name or ID of client network for which the OSD will be attached
     constraints:
       - custom_constraint: neutron.network
-  osd_net:
+  client_subnet:
     type: string
     description: >
-      Name or ID of private network for which the OSD will be attached
-    constraints:
-      - custom_constraint: neutron.network
-  osd_subnet:
-    type: string
-    description: >
-      Name or ID of private sub network for which the OSD will be attached
+      Name or ID of client network for which the OSD will be attached
     constraints:
       - custom_constraint: neutron.subnet
+  # osd_net:
+  #   type: string
+  #   description: >
+  #     Name or ID of private network for which the OSD will be attached
+  #   constraints:
+  #     - custom_constraint: neutron.network
+  # osd_subnet:
+  #   type: string
+  #   description: >
+  #     Name or ID of private sub network for which the OSD will be attached
+  #   constraints:
+  #     - custom_constraint: neutron.subnet
   secgroup_base:
     type: string
     description: >
@@ -68,25 +74,27 @@ parameters:
 
 resources:
 
-  osd_port:
-    type: "OS::Neutron::Port"
-    properties:
-      network: { get_param: osd_net  }
-      fixed_ips:
-        - subnet: { get_param: osd_subnet }
+  # osd_port:
+  #   type: "OS::Neutron::Port"
+  #   properties:
+  #     network: { get_param: osd_net  }
+  #     fixed_ips:
+  #       - subnet: { get_param: osd_subnet }
 
   client_port:
     type: "OS::Neutron::Port"
     properties:
       network: { get_param: client_net  }
+      fixed_ips:
+        - subnet: { get_param: client_subnet }
       security_groups:
           - { get_param: secgroup_base }
           - { get_param: secgroup_worker }
 
   osd:
     type: OS::Nova::Server
-    depends_on:
-      - osd_port
+    # depends_on:
+    #   - osd_port
     properties:
       name:
         str_replace:
@@ -100,7 +108,7 @@ resources:
       flavor: { get_param: flavor }
       networks:
         - port: { get_resource: client_port }
-        - port: { get_resource: osd_port }
+        # - port: { get_resource: osd_port }
       user_data_format: RAW
       user_data:
         str_replace:
