@@ -199,6 +199,9 @@ resources:
         - protocol: udp
           port_range_min: 8471
           port_range_max: 8472
+        - protocol: udp
+          port_range_min: 4789
+          port_range_max: 4789
         # kubelet
         - protocol: tcp
           port_range_min: 10250
@@ -251,6 +254,9 @@ resources:
         - protocol: udp
           port_range_min: 8471
           port_range_max: 8472
+        - protocol: udp
+          port_range_min: 4789
+          port_range_max: 4789
         - protocol: tcp
           # Prometheus
           port_range_min: 9090
